@@ -64,6 +64,25 @@ def get_trailhead_df():
 
     return response, trailhead_df
 
+def get_last_updated():
+    pandas_version = parse_version(pandas.__version__)._version.release
+    if pandas_version[:2] == (0, 23):
+        # read_html malfunctions in pandas v0.23
+        raise ImportError("pandas v0.23 is not supported due to https://git.io/fp9Zn")
+
+    url = "https://www.nps.gov/yose/planyourvisit/fulltrailheads.htm"
+    response = requests.get(url)
+    response.raise_for_status()
+
+        # Get last time updated
+    last_updated = pandas.read_html(
+        response.text,
+        flavor="html5lib"
+        )
+    last_updated = last_updated[0].iloc[1,1]
+
+    return last_updated
+
 
 yose_response, trailhead_df = get_trailhead_df()
 
@@ -95,7 +114,10 @@ csv_data = "NO VACANCY" if space_df.empty else space_df.to_csv(r'hackcsv.csv', i
 
 html_file = pandas.read_csv('hackcsv.csv')
 html_file = html_file.to_html()
+last_updated_time = get_last_updated()
 phone_hours = f"""
+LAST UPDATED AT {last_updated_time}
+
 
 According to https://www.nps.gov/yose/planyourvisit/fulltrailheads.htm
 
